@@ -197,7 +197,18 @@ const AdminDashboard = () => {
             </div>
             
             <p>{item.description}</p>
-            {item.location && <small style={{color:'#007bff'}}>📍 {item.location}</small>}
+            {item.location && (
+           <div style={{ marginTop: '5px' }}>
+               <a 
+                   href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(item.location)}`}
+                   target="_blank" 
+                   rel="noopener noreferrer"
+                   style={{ color: '#007bff', textDecoration: 'none', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '5px' }}
+            >
+      📍 {item.location} <span style={{ fontSize: '0.8rem', textDecoration: 'underline' }}>(Open Map ↗)</span>
+    </a>
+  </div>
+)}
             {item.image_url && <div style={{ marginTop: '10px', marginBottom: '10px' }}><img src={item.image_url} alt="Evidence" style={{ maxHeight: '150px', borderRadius: '8px' }} /></div>}
 
             {item.status === 'resolved' ? (

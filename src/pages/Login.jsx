@@ -1,113 +1,77 @@
-import { useState, useEffect } from 'react'
-import { supabase } from '../supabaseClient'
-import { Link, useNavigate } from 'react-router-dom'
+import { useState } from 'react';
+import { supabase } from '../supabaseClient';
+import { useNavigate, Link } from 'react-router-dom';
 
 const Login = () => {
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [notification, setNotification] = useState(null) // New Toast State
-  const navigate = useNavigate()
-
-  useEffect(() => {
-    setEmail('')
-    setPassword('')
-  }, [])
-
-  // Helper for popup
-  const showToast = (message, type = 'success') => {
-    setNotification({ message, type })
-    setTimeout(() => setNotification(null), 3000)
-  }
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const navigate = useNavigate();
 
   const handleLogin = async (e) => {
-    e.preventDefault()
-    setLoading(true)
+    e.preventDefault();
 
-    try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: email,
-        password: password,
-      })
+    // 1. Authenticate with Supabase Auth
+    const { data: { user }, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
 
-      if (error) throw error
+    if (error) {
+      alert(error.message);
+    } else {
+      // 2. FETCH THE USER'S ROLE from your 'users' table
+      const { data: userData, error: roleError } = await supabase
+        .from('users')
+        .select('role')
+        .eq('email', email)
+        .single(); // We expect only one result
 
-      if (data.user) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', data.user.id)
-          .single()
-
-        showToast("Login Successful!", "success")
-
-        // Small delay so user sees the success message
-        setTimeout(() => {
-          if (profile?.role === 'admin') {
-            navigate('/admin-dashboard')
-          } else {
-            navigate('/user-dashboard')
-          }
-        }, 1000)
+      if (roleError) {
+        console.error("Error fetching role:", roleError);
+        navigate('/'); // Fallback
+      } else if (userData) {
+        // 3. REDIRECT BASED ON ROLE
+        if (userData.role === 'admin') {
+          navigate('/admin-dashboard');
+        } else if (userData.role === 'employee') {
+          navigate('/employee-dashboard');
+        } else {
+          // Default for Citizens
+          navigate('/'); 
+        }
       }
-    } catch (error) {
-      showToast(error.message, "error") // Nice red popup
-    } finally {
-      setLoading(false)
     }
-  }
+  };
 
   return (
-    <div className="container animate-fade" style={{ maxWidth: '500px', marginTop: '50px' }}>
-      
-      {/* 🔔 TOAST CONTAINER */}
-      {notification && (
-        <div className="toast-container">
-          <div className={`toast ${notification.type}`}>
-            {notification.type === 'success' ? '✅' : '❌'} {notification.message}
-          </div>
-        </div>
-      )}
-
-      <div className="card" style={{ textAlign: 'center' }}>
-        <h2 style={{ marginBottom: '20px' }}>🔐 Login to Civic Connect</h2>
-        
-        <form onSubmit={handleLogin} autoComplete="off">
-          <div style={{ textAlign: 'left' }}>
-            <label>Email</label>
-            <input 
-              type="email" 
-              required 
-              value={email} 
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="Enter your email"
-              autoComplete="new-password"
-            />
-          </div>
-          
-          <div style={{ textAlign: 'left' }}>
-            <label>Password</label>
-            <input 
-              type="password" 
-              required 
-              value={password} 
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Enter your password"
-              autoComplete="new-password"
-            />
-          </div>
-
-          <button type="submit" disabled={loading} className="btn btn-primary">
-            {loading ? 'Logging in...' : 'Login'}
-          </button>
-        </form>
-
-        <p style={{ marginTop: '20px', color: '#666' }}>
-          Don't have an account? <Link to="/signup" style={{ color: '#4f46e5', fontWeight: 'bold' }}>Signup here</Link>
-        </p>
-      </div>
+    <div style={{ maxWidth: '400px', margin: '50px auto', padding: '30px', textAlign: 'center', boxShadow: '0 4px 8px rgba(0,0,0,0.1)', borderRadius: '10px' }}>
+      <h2>Login 🔐</h2>
+      <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+        <input
+          type="email"
+          placeholder="Email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          required
+          style={{ padding: '10px', borderRadius: '5px', border: '1px solid #ccc' }}
+        />
+        <input
+          type="password"
+          placeholder="Password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          required
+          style={{ padding: '10px', borderRadius: '5px', border: '1px solid #ccc' }}
+        />
+        <button type="submit" style={{ padding: '10px', backgroundColor: '#007bff', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer' }}>
+          Login
+        </button>
+      </form>
+      <p style={{ marginTop: '20px' }}>
+        Don't have an account? <Link to="/signup">Sign up</Link>
+      </p>
     </div>
-  )
-}
+  );
+};
 
-export default Login
+export default Login;

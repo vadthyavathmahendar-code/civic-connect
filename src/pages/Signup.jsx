@@ -1,149 +1,119 @@
-import { useState } from 'react'
-import { supabase } from '../supabaseClient'
-import { Link, useNavigate } from 'react-router-dom'
+import { useState } from 'react';
+import { supabase } from '../supabaseClient';
+import { Link, useNavigate } from 'react-router-dom';
 
 const Signup = () => {
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [role, setRole] = useState('citizen')
-  const [adminCode, setAdminCode] = useState('')
-  const [loading, setLoading] = useState(false)
-  
-  // NEW: State for Custom Popup (Toast)
-  const [notification, setNotification] = useState(null)
-
-  const navigate = useNavigate()
-  const SECRET_ADMIN_KEY = "CITY-ADMIN-2026"
-
-  // Helper function to show the fancy popup
-  const showToast = (message, type = 'success') => {
-    setNotification({ message, type })
-    setTimeout(() => setNotification(null), 3000)
-  }
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [role, setRole] = useState('citizen'); // Default role is Citizen
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
 
   const handleSignup = async (e) => {
-    e.preventDefault()
-    setLoading(true)
+    e.preventDefault();
+    setLoading(true);
 
-    try {
-      // 1. SECURITY CHECK
-      if (role === 'admin' && adminCode !== SECRET_ADMIN_KEY) {
-        showToast("ACCESS DENIED: Incorrect Govt Code!", "error") // Custom Popup
-        setLoading(false)
-        return
-      }
+    // 1. Sign up the user in Supabase Auth (Authentication)
+    const { data: { user }, error: authError } = await supabase.auth.signUp({
+      email,
+      password,
+    });
 
-      // 2. Create User
-      const { data, error } = await supabase.auth.signUp({
-        email: email,
-        password: password,
-      })
-
-      if (error) throw error
-
-      // 3. Save Role
-      if (data.user) {
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .insert([{ id: data.user.id, role: role, email: email }])
-
-        if (profileError) throw profileError
-
-        // Success Message
-        showToast("Signup successful! Check your email.", "success")
-        
-        // Wait 2 seconds so they can read the message before redirecting
-        setTimeout(() => {
-            navigate('/login')
-        }, 2000)
-      }
-    } catch (error) {
-      showToast(error.message, "error")
-    } finally {
-      setLoading(false)
+    if (authError) {
+      alert(authError.message);
+      setLoading(false);
+      return;
     }
-  }
+
+    // 2. Add the user details to your custom 'users' table (Database)
+    if (user) {
+      const { error: dbError } = await supabase
+        .from('users')
+        .insert([
+          { 
+            email: email, 
+            role: role // 'citizen' or 'employee'
+          }
+        ]);
+
+      if (dbError) {
+        console.error('Error saving user data:', dbError);
+        alert('Signup successful, but failed to save role. Please contact support.');
+      } else {
+        alert('Signup successful! Please log in.');
+        navigate('/'); // Redirect to Login page
+      }
+    }
+    setLoading(false);
+  };
 
   return (
-    <div className="container animate-fade" style={{ maxWidth: '500px', marginTop: '50px' }}>
+    <div style={{ 
+      maxWidth: '400px', 
+      margin: '50px auto', 
+      padding: '30px', 
+      boxShadow: '0 4px 8px rgba(0,0,0,0.1)', 
+      borderRadius: '10px', 
+      textAlign: 'center',
+      fontFamily: 'Arial, sans-serif'
+    }}>
+      <h2 style={{ color: '#333' }}>Create Account 🚀</h2>
       
-      {/* 🔔 THE TOAST NOTIFICATION CONTAINER */}
-      {notification && (
-        <div className="toast-container">
-          <div className={`toast ${notification.type}`}>
-            {notification.type === 'success' ? '✅' : '❌'} {notification.message}
-          </div>
-        </div>
-      )}
+      <form onSubmit={handleSignup} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+        
+        <input
+          type="email"
+          placeholder="Enter your email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          required
+          style={{ padding: '10px', borderRadius: '5px', border: '1px solid #ccc' }}
+        />
 
-      <div className="card" style={{ textAlign: 'center' }}>
-        <h2 style={{ marginBottom: '10px' }}>🚀 Create Account</h2>
-        <p style={{ color: '#666', marginBottom: '20px' }}>Join us to make the city better.</p>
+        <input
+          type="password"
+          placeholder="Create a password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          required
+          style={{ padding: '10px', borderRadius: '5px', border: '1px solid #ccc' }}
+        />
 
-        <form onSubmit={handleSignup} autoComplete="off">
-          <div style={{ textAlign: 'left' }}>
-            <label>Email Address</label>
-            <input 
-              type="email" 
-              required 
-              value={email} 
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="Enter your email"
-            />
-          </div>
-          
-          <div style={{ textAlign: 'left' }}>
-            <label>Password</label>
-            <input 
-              type="password" 
-              required 
-              value={password} 
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Create a password"
-            />
-          </div>
+        {/* ROLE SELECTION - ADMIN REMOVED */}
+        <select
+          value={role}
+          onChange={(e) => setRole(e.target.value)}
+          required
+          style={{ padding: '10px', borderRadius: '5px', border: '1px solid #ccc', background: 'white' }}
+        >
+          <option value="citizen">Citizen</option>
+          <option value="employee">Government Employee (Field Worker)</option>
+        </select>
 
-          <div style={{ textAlign: 'left' }}>
-            <label>I am a...</label>
-            <select 
-              value={role} 
-              onChange={(e) => setRole(e.target.value)}
-              style={{ padding: '12px', width: '100%', border: '1px solid #ccc', borderRadius: '8px', background: 'white', marginBottom:'1rem' }}
-            >
-              <option value="citizen">👤 Citizen (Report Issues)</option>
-              <option value="admin">🏛️ Govt Official (Admin)</option>
-            </select>
-          </div>
+        <button 
+          type="submit" 
+          disabled={loading}
+          style={{ 
+            padding: '12px', 
+            backgroundColor: loading ? '#ccc' : '#007bff', 
+            color: 'white', 
+            border: 'none', 
+            borderRadius: '5px', 
+            cursor: loading ? 'not-allowed' : 'pointer',
+            fontSize: '1rem',
+            fontWeight: 'bold'
+          }}
+        >
+          {loading ? 'Creating Account...' : 'Sign Up'}
+        </button>
 
-          {role === 'admin' && (
-            <div style={{ textAlign: 'left', animation: 'fadeIn 0.5s' }}>
-              <label style={{ color: '#ef4444', fontWeight: 'bold' }}>🔒 Enter Official Secret Code</label>
-              <input 
-                type="password" 
-                value={adminCode} 
-                onChange={(e) => setAdminCode(e.target.value)}
-                placeholder="Ask your supervisor for the code"
-                style={{ borderColor: '#ef4444' }}
-              />
-            </div>
-          )}
+      </form>
 
-          <button 
-            type="submit" 
-            disabled={loading} 
-            className="btn btn-primary"
-            style={{ marginTop: '20px' }}
-          >
-            {loading ? 'Creating Account...' : 'Sign Up'}
-          </button>
-        </form>
-
-        <p style={{ marginTop: '20px', color: '#666' }}>
-          Already have an account? <Link to="/login" style={{ color: '#4f46e5', fontWeight: 'bold' }}>Login here</Link>
-        </p>
-      </div>
+      <p style={{ marginTop: '20px', color: '#666' }}>
+        Already have an account? <Link to="/" style={{ color: '#007bff', textDecoration: 'none' }}>Log in here</Link>
+      </p>
     </div>
-  )
-}
+  );
+};
 
-export default Signup
+export default Signup;

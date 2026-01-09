@@ -4,6 +4,7 @@ import Signup from './pages/Signup'
 import UserDashboard from './pages/UserDashboard'
 import AdminDashboard from './pages/AdminDashboard'
 import LandingPage from './pages/LandingPage' // Import the new page
+import EmployeeDashboard from './pages/EmployeeDashboard';
 
 function App() {
   return (
@@ -17,6 +18,7 @@ function App() {
       <Route path="/signup" element={<Signup />} />
       <Route path="/user-dashboard" element={<UserDashboard />} />
       <Route path="/admin-dashboard" element={<AdminDashboard />} />
+      <Route path="/employee-dashboard" element={<EmployeeDashboard />} />
     </Routes>
   )
 }

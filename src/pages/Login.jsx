@@ -19,12 +19,12 @@ const Login = () => {
     if (error) {
       alert(error.message);
     } else {
-      // 2. FETCH THE USER'S ROLE from your 'users' table
+      // 2. FETCH ROLE from 'profiles' table (FIXED)
       const { data: userData, error: roleError } = await supabase
-        .from('users')
+        .from('profiles') // <--- CHANGED TO 'profiles'
         .select('role')
         .eq('email', email)
-        .single(); // We expect only one result
+        .single(); 
 
       if (roleError) {
         console.error("Error fetching role:", roleError);
@@ -36,8 +36,7 @@ const Login = () => {
         } else if (userData.role === 'employee') {
           navigate('/employee-dashboard');
         } else {
-          // Default for Citizens
-          navigate('/'); 
+          navigate('/'); // Citizen goes to Home
         }
       }
     }

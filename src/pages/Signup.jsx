@@ -5,7 +5,7 @@ import { Link, useNavigate } from 'react-router-dom';
 const Signup = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState('citizen'); // Default role is Citizen
+  const [role, setRole] = useState('citizen');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
@@ -13,7 +13,7 @@ const Signup = () => {
     e.preventDefault();
     setLoading(true);
 
-    // 1. Sign up the user in Supabase Auth (Authentication)
+    // 1. Sign up the user in Supabase Auth
     const { data: { user }, error: authError } = await supabase.auth.signUp({
       email,
       password,
@@ -25,14 +25,14 @@ const Signup = () => {
       return;
     }
 
-    // 2. Add the user details to your custom 'users' table (Database)
+    // 2. Add the user details to 'profiles' table (FIXED)
     if (user) {
       const { error: dbError } = await supabase
-        .from('users')
+        .from('profiles') // <--- CHANGED TO 'profiles'
         .insert([
           { 
             email: email, 
-            role: role // 'citizen' or 'employee'
+            role: role 
           }
         ]);
 
@@ -41,26 +41,16 @@ const Signup = () => {
         alert('Signup successful, but failed to save role. Please contact support.');
       } else {
         alert('Signup successful! Please log in.');
-        navigate('/'); // Redirect to Login page
+        navigate('/'); 
       }
     }
     setLoading(false);
   };
 
   return (
-    <div style={{ 
-      maxWidth: '400px', 
-      margin: '50px auto', 
-      padding: '30px', 
-      boxShadow: '0 4px 8px rgba(0,0,0,0.1)', 
-      borderRadius: '10px', 
-      textAlign: 'center',
-      fontFamily: 'Arial, sans-serif'
-    }}>
+    <div style={{ maxWidth: '400px', margin: '50px auto', padding: '30px', boxShadow: '0 4px 8px rgba(0,0,0,0.1)', borderRadius: '10px', textAlign: 'center', fontFamily: 'Arial, sans-serif' }}>
       <h2 style={{ color: '#333' }}>Create Account 🚀</h2>
-      
       <form onSubmit={handleSignup} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-        
         <input
           type="email"
           placeholder="Enter your email"
@@ -69,7 +59,6 @@ const Signup = () => {
           required
           style={{ padding: '10px', borderRadius: '5px', border: '1px solid #ccc' }}
         />
-
         <input
           type="password"
           placeholder="Create a password"
@@ -78,8 +67,6 @@ const Signup = () => {
           required
           style={{ padding: '10px', borderRadius: '5px', border: '1px solid #ccc' }}
         />
-
-        {/* ROLE SELECTION - ADMIN REMOVED */}
         <select
           value={role}
           onChange={(e) => setRole(e.target.value)}
@@ -89,26 +76,14 @@ const Signup = () => {
           <option value="citizen">Citizen</option>
           <option value="employee">Government Employee (Field Worker)</option>
         </select>
-
         <button 
           type="submit" 
           disabled={loading}
-          style={{ 
-            padding: '12px', 
-            backgroundColor: loading ? '#ccc' : '#007bff', 
-            color: 'white', 
-            border: 'none', 
-            borderRadius: '5px', 
-            cursor: loading ? 'not-allowed' : 'pointer',
-            fontSize: '1rem',
-            fontWeight: 'bold'
-          }}
+          style={{ padding: '12px', backgroundColor: loading ? '#ccc' : '#007bff', color: 'white', border: 'none', borderRadius: '5px', cursor: loading ? 'not-allowed' : 'pointer', fontSize: '1rem', fontWeight: 'bold' }}
         >
           {loading ? 'Creating Account...' : 'Sign Up'}
         </button>
-
       </form>
-
       <p style={{ marginTop: '20px', color: '#666' }}>
         Already have an account? <Link to="/" style={{ color: '#007bff', textDecoration: 'none' }}>Log in here</Link>
       </p>

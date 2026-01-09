@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { supabase } from '../supabaseClient';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 
 const Signup = () => {
   const [email, setEmail] = useState('');
@@ -8,12 +8,12 @@ const Signup = () => {
   const [role, setRole] = useState('citizen');
   const [secretCode, setSecretCode] = useState('');
   const [loading, setLoading] = useState(false);
-  const navigate = useNavigate();
 
   const handleSignup = async (e) => {
     e.preventDefault();
     setLoading(true);
 
+    // --- 1. SECRET CODE VALIDATION ---
     if (role === 'employee' && secretCode !== 'CITYWORKER') {
       alert("🚫 Access Denied: Incorrect Employee Code."); setLoading(false); return;
     }
@@ -21,13 +21,24 @@ const Signup = () => {
       alert("🚫 Access Denied: Incorrect Admin Code."); setLoading(false); return;
     }
 
-    const { data: { user }, error: authError } = await supabase.auth.signUp({ email, password });
-    if (authError) { alert(authError.message); setLoading(false); return; }
+    // --- 2. AUTH SIGNUP (With Email Confirmation) ---
+    // We pass the 'role' in 'data' so the SQL Trigger can use it.
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          role: role, 
+        },
+      },
+    });
 
-    if (user) {
-      await supabase.from('profiles').insert([{ id: user.id, email: email, role: role }]);
-      alert('✅ Account Created! Please Login.');
-      navigate('/login');
+    if (error) {
+      alert(error.message);
+    } else {
+      // SUCCESS!
+      alert('✅ Registration Successful!\n\n📧 Please check your email to confirm your account before logging in.');
+      // We do NOT navigate immediately. The user must verify first.
     }
     setLoading(false);
   };
@@ -68,7 +79,7 @@ const Signup = () => {
           )}
 
           <button type="submit" className="btn btn-primary" disabled={loading} style={{ marginTop: '10px' }}>
-            {loading ? 'Creating Account...' : 'Sign Up'}
+            {loading ? 'Processing...' : 'Sign Up'}
           </button>
         </form>
         

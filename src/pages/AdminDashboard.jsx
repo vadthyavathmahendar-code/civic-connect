@@ -14,38 +14,45 @@ const AdminDashboard = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const checkUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return navigate('/'); 
+    const fetchSession = async () => {
+      // 1. Get Session from Browser Memory (Fast & Persistent)
+      const { data: { session } } = await supabase.auth.getSession();
       
-      const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
-      if (profile?.role !== 'admin') return navigate('/');
+      if (!session) {
+        setLoading(false);
+        return navigate('/');
+      }
 
-      setAdminEmail(user.email);
-      fetchData();
+      // 2. Check Role
+      const { data: profile } = await supabase.from('profiles').select('role').eq('id', session.user.id).single();
+      if (profile?.role !== 'admin') {
+        return navigate('/');
+      }
+
+      setAdminEmail(session.user.email);
+      fetchData(); 
+      setLoading(false);
+
+      // --- REAL-TIME LISTENER ---
+      const subscription = supabase
+        .channel('admin_complaints')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'complaints' }, () => {
+          fetchData(); // Reload data immediately on change
+        })
+        .subscribe();
+
+      return () => { supabase.removeChannel(subscription); };
     };
-    checkUser();
 
-    // --- REAL-TIME CONNECTIVITY ---
-    // Listen for ANY changes to the 'complaints' table
-    const subscription = supabase
-      .channel('admin_complaints')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'complaints' }, (payload) => {
-        // If something changes, just re-fetch the fresh data
-        fetchData();
-      })
-      .subscribe();
-
-    return () => { supabase.removeChannel(subscription); };
+    fetchSession();
   }, [navigate]);
 
   const fetchData = async () => {
     const { data } = await supabase.from('complaints').select('*').order('created_at', { ascending: false });
     const all = data || [];
     setComplaints(all);
-    setFilteredComplaints(all); // Initialize filter
+    setFilteredComplaints(all);
     calculateStats(all);
-    setLoading(false);
   };
 
   const calculateStats = (data) => {
@@ -56,7 +63,7 @@ const AdminDashboard = () => {
     });
   };
 
-  // --- FILTER LOGIC ---
+  // Filter Logic
   useEffect(() => {
     let result = complaints;
     if (filterStatus !== 'All') result = result.filter(c => c.status === filterStatus);
@@ -70,7 +77,6 @@ const AdminDashboard = () => {
   const handleAssign = async (id, email) => {
     if(!email) return alert('Enter worker email');
     await supabase.from('complaints').update({ assigned_to: email, status: 'In Progress' }).eq('id', id);
-    // No need to alert or fetch manually, Real-time will handle the update!
   };
 
   const handleDelete = async (id) => {

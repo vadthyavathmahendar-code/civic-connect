@@ -8,17 +8,28 @@ const UserDashboard = () => {
   const [complaints, setComplaints] = useState([]);
   const [loading, setLoading] = useState(false);
   const [gpsLoading, setGpsLoading] = useState(false);
-  const [user, setUser] = useState({ name: '', email: '' });
+  const [user, setUser] = useState({ name: '', email: '', points: 0 });
+  const [pageLoading, setPageLoading] = useState(true);
+  
   const navigate = useNavigate();
 
   useEffect(() => {
-    const init = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return navigate('/');
-      setUser({ name: user.email.split('@')[0], email: user.email });
-      fetchHistory(user.id);
+    const fetchSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) { setPageLoading(false); return navigate('/'); }
+
+      const { data: profile } = await supabase.from('profiles').select('points').eq('id', session.user.id).single();
+      
+      setUser({ 
+        name: session.user.email.split('@')[0], 
+        email: session.user.email,
+        points: profile?.points || 0
+      });
+
+      fetchHistory(session.user.id);
+      setPageLoading(false);
     };
-    init();
+    fetchSession();
   }, [navigate]);
 
   const fetchHistory = async (id) => {
@@ -38,7 +49,7 @@ const UserDashboard = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { session } } = await supabase.auth.getSession();
     
     let imageUrl = null;
     if (image) {
@@ -49,102 +60,61 @@ const UserDashboard = () => {
     }
 
     await supabase.from('complaints').insert([{
-      user_id: user.id, title: formData.title, description: formData.desc, 
+      user_id: session.user.id, title: formData.title, description: formData.desc, 
       category: formData.category, location: formData.location, image_url: imageUrl, status: 'Pending'
     }]);
 
     setLoading(false); setFormData({ title: '', desc: '', location: '', category: 'Roads' }); setImage(null);
-    fetchHistory(user.id);
-    alert("Report Submitted Successfully!");
+    alert("Report Submitted! You will earn points once it is resolved.");
+    fetchHistory(session.user.id);
   };
+
+  const getBadge = (points) => {
+    if (points >= 500) return '🦸‍♂️ Legend';
+    if (points >= 200) return '🛡️ Guardian';
+    if (points >= 50) return '⭐ Contributor';
+    return '🌱 Rookie';
+  };
+
+  if (pageLoading) return <div className="spinner-blue"></div>;
 
   return (
     <div className="container fade-in">
-      {/* HEADER */}
-      <div className="dashboard-header">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-          <div style={{ width: '45px', height: '45px', background: 'var(--primary)', borderRadius: '50%', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '1.2rem' }}>
-            {user.name.charAt(0).toUpperCase()}
-          </div>
-          <div>
-            <h2 style={{ margin: 0, fontSize: '1.2rem', textTransform: 'capitalize' }}>{user.name}</h2>
-            <p style={{ margin: 0, color: 'var(--secondary)', fontSize: '0.9rem' }}>Citizen Account</p>
-          </div>
+      <div className="dashboard-header" style={{ gap: '20px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '15px', flex: 1 }}>
+          <div style={{ width: '50px', height: '50px', background: 'var(--primary)', borderRadius: '50%', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '1.5rem' }}>{user.name.charAt(0).toUpperCase()}</div>
+          <div><h2 style={{ margin: 0, textTransform: 'capitalize' }}>{user.name}</h2><p style={{ margin: 0, color: 'var(--secondary)' }}>{user.email}</p></div>
         </div>
-        <button onClick={async () => { await supabase.auth.signOut(); navigate('/'); }} className="btn btn-danger" style={{ padding: '8px 16px', fontSize: '0.8rem' }}>
-          Logout
-        </button>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '20px', background: '#f0f9ff', padding: '10px 20px', borderRadius: '12px', border: '1px solid #bae6fd' }}>
+          <div style={{ textAlign: 'center' }}><span style={{ display: 'block', fontSize: '0.8rem', fontWeight: 'bold', color: '#0284c7' }}>SCORE</span><span style={{ fontSize: '1.5rem', fontWeight: '900', color: '#0ea5e9' }}>{user.points}</span></div>
+          <div style={{ height: '40px', width: '1px', background: '#cbd5e1' }}></div>
+          <div style={{ textAlign: 'center' }}><span style={{ display: 'block', fontSize: '0.8rem', fontWeight: 'bold', color: '#0284c7' }}>RANK</span><span style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#0ea5e9' }}>{getBadge(user.points)}</span></div>
+        </div>
+        <button onClick={() => { supabase.auth.signOut(); navigate('/'); }} className="btn btn-danger">Logout</button>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '30px' }}>
-        
-        {/* FORM SECTION */}
         <div className="card">
-          <h2 style={{ marginTop: 0, borderBottom: '1px solid #eee', paddingBottom: '15px' }}>📝 New Report</h2>
-          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '15px', marginTop: '20px' }}>
-            <input placeholder="Issue Title (e.g. Broken Light)" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} required />
-            
-            <div style={{ display: 'flex', gap: '10px' }}>
-              <select value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})} style={{ flex: 1 }}>
-                <option>Roads</option><option>Garbage</option><option>Water</option><option>Electricity</option>
-              </select>
-            </div>
-
-            <textarea placeholder="Describe the issue details..." rows="3" value={formData.desc} onChange={e => setFormData({...formData, desc: e.target.value})} required />
-            
-            <div style={{ display: 'flex', gap: '10px' }}>
-              <input placeholder="Location Address" value={formData.location} onChange={e => setFormData({...formData, location: e.target.value})} required />
-              <button type="button" onClick={handleGPS} className="btn btn-secondary" style={{ whiteSpace: 'nowrap' }}>
-                {gpsLoading ? '...' : '📍 GPS'}
-              </button>
-            </div>
-
-            <div style={{ border: '2px dashed #cbd5e1', padding: '20px', borderRadius: '12px', textAlign: 'center', cursor: 'pointer', background: '#f8fafc' }} onClick={() => document.getElementById('fileUpload').click()}>
-              <p style={{ margin: 0, color: '#64748b' }}>{image ? `📸 ${image.name}` : 'Click to Upload Photo'}</p>
-              <input id="fileUpload" type="file" onChange={e => setImage(e.target.files[0])} style={{ display: 'none' }} />
-            </div>
-
-            <button type="submit" className="btn btn-primary" disabled={loading} style={{ marginTop: '10px' }}>
-              {loading ? 'Submitting...' : '🚀 Submit Report'}
-            </button>
+          <h2 style={{ marginTop: 0 }}>📝 New Report</h2>
+          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+            <input placeholder="Title" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} required />
+            <select value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})}><option>Roads</option><option>Garbage</option><option>Water</option><option>Electricity</option></select>
+            <textarea placeholder="Description..." rows="3" value={formData.desc} onChange={e => setFormData({...formData, desc: e.target.value})} required />
+            <div style={{ display: 'flex', gap: '10px' }}><input placeholder="Location" value={formData.location} onChange={e => setFormData({...formData, location: e.target.value})} required /><button type="button" onClick={handleGPS} className="btn btn-secondary">{gpsLoading ? '...' : '📍 GPS'}</button></div>
+            <input type="file" onChange={e => setImage(e.target.files[0])} />
+            <button type="submit" className="btn btn-primary" disabled={loading}>{loading ? 'Submitting...' : '🚀 Submit Report'}</button>
           </form>
         </div>
 
-        {/* HISTORY SECTION */}
         <div>
-          <h2 style={{ marginTop: 0, marginBottom: '20px' }}>📜 Recent History</h2>
+          <h2 style={{ marginTop: 0 }}>📜 History</h2>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-            {complaints.length === 0 && <p style={{ color: '#94a3b8', fontStyle: 'italic' }}>No reports yet. You're a model citizen!</p>}
-            
             {complaints.map(c => (
               <div key={c.id} className="card" style={{ padding: '20px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
-                  <span style={{ fontWeight: 'bold', color: 'var(--primary)' }}>{c.category}</span>
-                  <span className={`badge status-${c.status.replace(' ', '')}`}>{c.status}</span>
-                </div>
-                <h3 style={{ margin: '0 0 5px', fontSize: '1.1rem' }}>{c.title}</h3>
-                <p style={{ color: '#64748b', fontSize: '0.9rem', margin: '0 0 15px' }}>{new Date(c.created_at).toLocaleDateString()}</p>
-                
-                {/* NEW FEATURE: STATUS PROGRESS BAR */}
-                <div style={{ height: '6px', background: '#e2e8f0', borderRadius: '10px', overflow: 'hidden', marginBottom: '15px' }}>
-                  <div style={{ 
-                    height: '100%', 
-                    width: c.status === 'Resolved' ? '100%' : c.status === 'In Progress' ? '50%' : '10%', 
-                    background: c.status === 'Resolved' ? 'var(--success)' : c.status === 'In Progress' ? 'var(--warning)' : 'var(--danger)',
-                    transition: 'width 0.5s ease' 
-                  }}></div>
-                </div>
-
-                {c.status === 'Resolved' && (
-                  <div style={{ background: '#f0fdf4', padding: '12px', borderRadius: '8px', borderLeft: '4px solid #16a34a' }}>
-                    <p style={{ margin: 0, fontSize: '0.9rem', color: '#166534' }}><strong>Reply:</strong> {c.admin_reply}</p>
-                    {c.resolve_image_url && (
-                       <a href={c.resolve_image_url} target="_blank" style={{ display: 'block', marginTop: '8px', fontSize: '0.85rem', color: '#166534', fontWeight: 'bold', textDecoration: 'none' }}>
-                         👁️ View Proof of Work
-                       </a>
-                    )}
-                  </div>
-                )}
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ fontWeight: 'bold', color: 'var(--primary)' }}>{c.category}</span><span className={`badge status-${c.status.replace(' ', '')}`}>{c.status}</span></div>
+                <h4 style={{ margin: '5px 0' }}>{c.title}</h4>
+                {c.status === 'Resolved' && <div style={{ marginTop: '10px', fontSize: '0.85rem', color: '#16a34a', fontWeight: 'bold' }}>🎉 +50 Points Earned!</div>}
               </div>
             ))}
           </div>

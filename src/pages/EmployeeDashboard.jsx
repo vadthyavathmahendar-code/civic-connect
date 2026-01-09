@@ -13,28 +13,33 @@ const EmployeeDashboard = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const checkUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return navigate('/');
+    const fetchSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
       
-      const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
+      if (!session) {
+        setLoading(false);
+        return navigate('/');
+      }
+
+      const { data: profile } = await supabase.from('profiles').select('role').eq('id', session.user.id).single();
       if (profile?.role !== 'employee') return navigate('/');
 
-      setWorkerDetails({ name: user.email.split('@')[0], email: user.email });
-      fetchTasks(user.email);
+      setWorkerDetails({ name: session.user.email.split('@')[0], email: session.user.email });
+      fetchTasks(session.user.email);
       setLoading(false);
 
-      // --- REAL-TIME: Listen for tasks assigned to ME ---
+      // --- REAL-TIME LISTENER ---
       const subscription = supabase
         .channel('employee_tasks')
         .on('postgres_changes', { event: '*', schema: 'public', table: 'complaints' }, () => {
-          fetchTasks(user.email); // Reload tasks if anything changes in DB
+          fetchTasks(session.user.email);
         })
         .subscribe();
 
       return () => { supabase.removeChannel(subscription); };
     };
-    checkUser();
+
+    fetchSession();
   }, [navigate]);
 
   const fetchTasks = async (email) => {

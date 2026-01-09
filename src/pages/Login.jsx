@@ -32,23 +32,14 @@ const Login = () => {
   return (
     <div className="fade-in" style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
       <div className="card" style={{ width: '100%', maxWidth: '400px', padding: '40px', background: 'white' }}>
-        
         <div style={{ textAlign: 'center', marginBottom: '30px' }}>
           <h1 style={{ margin: 0, fontSize: '2rem', color: '#1e293b' }}>Welcome Back</h1>
-          <p style={{ color: '#64748b' }}>Enter your credentials to access the city portal.</p>
+          <p style={{ color: '#64748b' }}>Enter your credentials to access the portal.</p>
         </div>
 
         <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-          <div>
-            <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem', fontWeight: '600', color: '#334155' }}>Email Address</label>
-            <input type="email" placeholder="you@example.com" value={email} onChange={e => setEmail(e.target.value)} required />
-          </div>
-          
-          <div>
-            <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem', fontWeight: '600', color: '#334155' }}>Password</label>
-            <input type="password" placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)} required />
-          </div>
-          
+          <input type="email" placeholder="Email Address" value={email} onChange={e => setEmail(e.target.value)} required />
+          <input type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} required />
           <button type="submit" className="btn btn-primary" disabled={loading} style={{ width: '100%', marginTop: '10px' }}>
             {loading ? 'Logging in...' : 'Sign In'}
           </button>

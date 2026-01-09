@@ -13,7 +13,6 @@ const Signup = () => {
     e.preventDefault();
     setLoading(true);
 
-    // --- 1. SECRET CODE VALIDATION ---
     if (role === 'employee' && secretCode !== 'CITYWORKER') {
       alert("🚫 Access Denied: Incorrect Employee Code."); setLoading(false); return;
     }
@@ -21,24 +20,17 @@ const Signup = () => {
       alert("🚫 Access Denied: Incorrect Admin Code."); setLoading(false); return;
     }
 
-    // --- 2. AUTH SIGNUP (With Email Confirmation) ---
-    // We pass the 'role' in 'data' so the SQL Trigger can use it.
+    // We pass role in metadata so the SQL Trigger can create the profile
     const { error } = await supabase.auth.signUp({
       email,
       password,
-      options: {
-        data: {
-          role: role, 
-        },
-      },
+      options: { data: { role: role } },
     });
 
     if (error) {
       alert(error.message);
     } else {
-      // SUCCESS!
       alert('✅ Registration Successful!\n\n📧 Please check your email to confirm your account before logging in.');
-      // We do NOT navigate immediately. The user must verify first.
     }
     setLoading(false);
   };
@@ -46,21 +38,14 @@ const Signup = () => {
   return (
     <div className="fade-in" style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
       <div className="card" style={{ width: '100%', maxWidth: '420px', padding: '40px', background: 'white' }}>
-        
         <div style={{ textAlign: 'center', marginBottom: '30px' }}>
           <h1 style={{ margin: 0, fontSize: '2rem', color: '#1e293b' }}>Join Civic Connect</h1>
           <p style={{ color: '#64748b' }}>Create an account to start reporting.</p>
         </div>
 
         <form onSubmit={handleSignup} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-          <div>
-            <label style={{ fontSize: '0.9rem', fontWeight: '600', color: '#334155' }}>Email</label>
-            <input type="email" value={email} onChange={e => setEmail(e.target.value)} required />
-          </div>
-          <div>
-            <label style={{ fontSize: '0.9rem', fontWeight: '600', color: '#334155' }}>Password</label>
-            <input type="password" value={password} onChange={e => setPassword(e.target.value)} required />
-          </div>
+          <input type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} required />
+          <input type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} required />
           
           <div>
             <label style={{ fontSize: '0.9rem', fontWeight: '600', color: '#334155' }}>I am a:</label>

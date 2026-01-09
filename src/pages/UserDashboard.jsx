@@ -10,6 +10,7 @@ const UserDashboard = () => {
   const [image, setImage] = useState(null);
   const [complaints, setComplaints] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [gpsLoading, setGpsLoading] = useState(false); // New loading state for GPS
   
   const navigate = useNavigate();
 
@@ -28,6 +29,28 @@ const UserDashboard = () => {
   const handleLogout = async () => {
     await supabase.auth.signOut();
     navigate('/');
+  };
+
+  // --- GPS FUNCTION ---
+  const handleGetLocation = () => {
+    if (!navigator.geolocation) {
+      alert("Geolocation is not supported by your browser.");
+      return;
+    }
+    setGpsLoading(true);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        // Format it for Google Maps
+        setLocation(`Lat: ${latitude}, Long: ${longitude}`);
+        setGpsLoading(false);
+      },
+      (error) => {
+        console.error("Error getting location:", error);
+        alert("Unable to retrieve your location. Please allow location access.");
+        setGpsLoading(false);
+      }
+    );
   };
 
   const handleSubmit = async (e) => {
@@ -58,20 +81,52 @@ const UserDashboard = () => {
     <div style={{ maxWidth: '800px', margin: '40px auto', padding: '20px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
         <h1 style={{ margin: 0, color: '#1e293b' }}>👤 My Dashboard</h1>
-        <button onClick={handleLogout} style={{ background: '#ef4444', color: 'white', padding: '8px 16px', borderRadius: '6px', border: 'none' }}>Logout</button>
+        <button onClick={handleLogout} style={{ background: '#ef4444', color: 'white', padding: '8px 16px', borderRadius: '6px', border: 'none', cursor: 'pointer' }}>Logout</button>
       </div>
 
       <div style={{ background: 'white', padding: '30px', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)', marginBottom: '40px' }}>
         <h2 style={{ marginTop: 0 }}>📢 Report Issue</h2>
         <form onSubmit={handleSubmit} style={{ display: 'grid', gap: '15px' }}>
-          <input type="text" placeholder="Title (e.g., Broken Light)" value={title} onChange={e => setTitle(e.target.value)} required style={{ padding: '10px', borderRadius: '6px' }} />
-          <select value={category} onChange={e => setCategory(e.target.value)} style={{ padding: '10px', borderRadius: '6px' }}>
+          
+          <input type="text" placeholder="Title (e.g., Broken Light)" value={title} onChange={e => setTitle(e.target.value)} required style={{ padding: '10px', borderRadius: '6px', border: '1px solid #ccc' }} />
+          
+          <select value={category} onChange={e => setCategory(e.target.value)} style={{ padding: '10px', borderRadius: '6px', border: '1px solid #ccc', background: 'white' }}>
             <option>Roads</option><option>Garbage</option><option>Water</option><option>Electricity</option>
           </select>
-          <textarea placeholder="Description..." value={desc} onChange={e => setDesc(e.target.value)} required rows="3" style={{ padding: '10px', borderRadius: '6px' }} />
-          <input type="text" placeholder="Location" value={location} onChange={e => setLocation(e.target.value)} required style={{ padding: '10px', borderRadius: '6px' }} />
-          <input type="file" onChange={e => setImage(e.target.files[0])} />
-          <button type="submit" disabled={loading} style={{ background: '#2563eb', color: 'white', padding: '12px', borderRadius: '6px', border: 'none', fontWeight: 'bold' }}>
+          
+          <textarea placeholder="Description..." value={desc} onChange={e => setDesc(e.target.value)} required rows="3" style={{ padding: '10px', borderRadius: '6px', border: '1px solid #ccc' }} />
+          
+          {/* LOCATION SECTION WITH BUTTON */}
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <input 
+              type="text" 
+              placeholder="Enter Address or Click GPS" 
+              value={location} 
+              onChange={e => setLocation(e.target.value)} 
+              required 
+              style={{ flex: 1, padding: '10px', borderRadius: '6px', border: '1px solid #ccc' }} 
+            />
+            <button 
+              type="button" 
+              onClick={handleGetLocation} 
+              disabled={gpsLoading}
+              style={{ 
+                padding: '0 20px', 
+                background: '#64748b', 
+                color: 'white', 
+                border: 'none', 
+                borderRadius: '6px', 
+                cursor: gpsLoading ? 'not-allowed' : 'pointer',
+                whiteSpace: 'nowrap'
+              }}
+            >
+              {gpsLoading ? 'Locating...' : '📍 GPS'}
+            </button>
+          </div>
+
+          <input type="file" onChange={e => setImage(e.target.files[0])} style={{ marginTop: '10px' }} />
+          
+          <button type="submit" disabled={loading} style={{ background: '#2563eb', color: 'white', padding: '12px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', marginTop: '10px' }}>
             {loading ? 'Submitting...' : 'Submit Report'}
           </button>
         </form>

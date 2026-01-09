@@ -4,61 +4,48 @@ const Home = () => {
   const navigate = useNavigate();
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: '20px', background: 'linear-gradient(135deg, #eff6ff 0%, #ffffff 100%)', fontFamily: 'Inter, sans-serif' }}>
+    <div className="fade-in" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: '0 20px' }}>
       
       {/* HERO SECTION */}
-      <div style={{ maxWidth: '800px', animation: 'fadeIn 0.8s ease-out' }}>
-        
-        {/* BRAND NAME */}
-        <h1 style={{ fontSize: '4.5rem', margin: '0 0 10px', color: '#2563eb', fontWeight: '900', letterSpacing: '-2px' }}>
+      <div style={{ maxWidth: '800px', marginBottom: '60px' }}>
+        <div style={{ display: 'inline-block', padding: '8px 16px', background: '#dbeafe', color: '#1e40af', borderRadius: '30px', fontWeight: '600', fontSize: '0.9rem', marginBottom: '20px' }}>
+          🚀 The Future of City Management
+        </div>
+        <h1 style={{ fontSize: '4rem', margin: '0 0 20px', fontWeight: '900', letterSpacing: '-2px', background: '-webkit-linear-gradient(45deg, #2563eb, #06b6d4)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
           Civic Connect
         </h1>
-        
-        {/* NEW CATCHY TAGLINE */}
-        <h2 style={{ fontSize: '2.5rem', margin: '0 0 20px', color: '#1e293b', fontWeight: '800' }}>
-          See it. Click it. <span style={{ color: '#2563eb', textDecoration: 'underline' }}>Fix it.</span>
+        <h2 style={{ fontSize: '2rem', color: '#334155', fontWeight: '700', marginBottom: '20px' }}>
+          See it. Click it. <span style={{ textDecoration: 'underline', textDecorationColor: '#2563eb' }}>Fix it.</span>
         </h2>
-        
-        {/* SUBTEXT (The "Bridging the Gap" line you also liked) */}
-        <p style={{ fontSize: '1.2rem', color: '#64748b', marginBottom: '40px', lineHeight: '1.6' }}>
-          Bridging the gap between citizens and authorities. 
-          Snap a picture of the issue, and we handle the rest.
+        <p style={{ fontSize: '1.2rem', color: '#64748b', lineHeight: '1.6', marginBottom: '40px' }}>
+          Empowering citizens to build better cities. Report issues instantly, track real-time progress, and watch your neighborhood transform.
         </p>
 
-        {/* ACTION BUTTONS */}
-        <div style={{ display: 'flex', gap: '20px', justifyContent: 'center' }}>
-          <button 
-            onClick={() => navigate('/login')}
-            style={{ padding: '16px 45px', fontSize: '1.1rem', background: '#2563eb', color: 'white', border: 'none', borderRadius: '50px', boxShadow: '0 10px 25px -5px rgba(37, 99, 235, 0.4)', fontWeight: 'bold', cursor: 'pointer', transition: 'transform 0.2s' }}
-          >
-            Login
+        <div style={{ display: 'flex', gap: '15px', justifyContent: 'center' }}>
+          <button onClick={() => navigate('/login')} className="btn btn-primary" style={{ padding: '16px 40px', fontSize: '1.1rem' }}>
+            Login Now
           </button>
-          
-          <button 
-            onClick={() => navigate('/signup')}
-            style={{ padding: '16px 45px', fontSize: '1.1rem', background: 'white', color: '#1e293b', border: '2px solid #e2e8f0', borderRadius: '50px', fontWeight: 'bold', cursor: 'pointer', transition: 'transform 0.2s' }}
-          >
-            Sign Up
+          <button onClick={() => navigate('/signup')} className="btn btn-secondary" style={{ padding: '16px 40px', fontSize: '1.1rem' }}>
+            Create Account
           </button>
         </div>
       </div>
 
-      {/* FEATURES SECTION */}
-      <div style={{ marginTop: '100px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '30px', width: '100%', maxWidth: '1100px', textAlign: 'left' }}>
-        <FeatureCard icon="👀" title="1. See it" desc="Spot a pothole, garbage, or broken light in your neighborhood." />
-        <FeatureCard icon="📸" title="2. Click it" desc="Snap a photo and upload it. We auto-detect your location." />
-        <FeatureCard icon="🛠️" title="3. Fix it" desc="Authorities get notified instantly and resolve the issue fast." />
+      {/* FEATURE CARDS */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '30px', width: '100%', maxWidth: '1200px' }}>
+        <FeatureCard icon="📸" title="Snap & Upload" desc="Spotted a pothole? Take a photo. Our AI-ready system tags the location instantly." />
+        <FeatureCard icon="🛰️" title="GPS Precision" desc="We use advanced geolocation to pinpoint exactly where repairs are needed." />
+        <FeatureCard icon="✅" title="Verified Proof" desc="Don't just take our word for it. See 'Before & After' photos when jobs are done." />
       </div>
     </div>
   );
 };
 
-// Helper Component for Cards
 const FeatureCard = ({ icon, title, desc }) => (
-  <div style={{ padding: '30px', background: 'white', borderRadius: '15px', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.05)', border: '1px solid #f1f5f9' }}>
-    <div style={{ fontSize: '2.5rem', marginBottom: '15px' }}>{icon}</div>
-    <h3 style={{ margin: '0 0 10px', color: '#334155', fontSize: '1.4rem' }}>{title}</h3>
-    <p style={{ margin: 0, color: '#94a3b8', fontSize: '1rem', lineHeight: '1.6' }}>{desc}</p>
+  <div className="card" style={{ textAlign: 'left' }}>
+    <div style={{ fontSize: '3rem', marginBottom: '15px' }}>{icon}</div>
+    <h3 style={{ margin: '0 0 10px', fontSize: '1.5rem', color: '#1e293b' }}>{title}</h3>
+    <p style={{ margin: 0, color: '#64748b', lineHeight: '1.6' }}>{desc}</p>
   </div>
 );
 

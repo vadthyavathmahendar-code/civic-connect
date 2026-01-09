@@ -5,24 +5,24 @@ import { useNavigate, Link } from 'react-router-dom';
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleLogin = async (e) => {
     e.preventDefault();
+    setLoading(true);
     
-    // 1. Auth Login
     const { data: { user }, error } = await supabase.auth.signInWithPassword({ email, password });
 
     if (error) {
       alert(error.message);
+      setLoading(false);
     } else {
-      // 2. Check Role
       const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
-
       if (profile) {
         if (profile.role === 'admin') navigate('/admin-dashboard');
         else if (profile.role === 'employee') navigate('/employee-dashboard');
-        else navigate('/user-dashboard'); // Citizens go here
+        else navigate('/user-dashboard');
       } else {
         navigate('/'); 
       }
@@ -30,19 +30,32 @@ const Login = () => {
   };
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f1f5f9' }}>
-      <div style={{ background: 'white', padding: '40px', borderRadius: '15px', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', width: '100%', maxWidth: '400px' }}>
-        <h2 style={{ textAlign: 'center', marginBottom: '30px', color: '#1e293b' }}>Welcome Back 👋</h2>
+    <div className="fade-in" style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
+      <div className="card" style={{ width: '100%', maxWidth: '400px', padding: '40px', background: 'white' }}>
+        
+        <div style={{ textAlign: 'center', marginBottom: '30px' }}>
+          <h1 style={{ margin: 0, fontSize: '2rem', color: '#1e293b' }}>Welcome Back</h1>
+          <p style={{ color: '#64748b' }}>Enter your credentials to access the city portal.</p>
+        </div>
+
         <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-          <input type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} required style={{ padding: '12px', borderRadius: '8px' }} />
-          <input type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} required style={{ padding: '12px', borderRadius: '8px' }} />
+          <div>
+            <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem', fontWeight: '600', color: '#334155' }}>Email Address</label>
+            <input type="email" placeholder="you@example.com" value={email} onChange={e => setEmail(e.target.value)} required />
+          </div>
           
-          <button type="submit" style={{ padding: '12px', background: '#2563eb', color: 'white', border: 'none', borderRadius: '8px', fontSize: '1rem', fontWeight: '600' }}>
-            Login
+          <div>
+            <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem', fontWeight: '600', color: '#334155' }}>Password</label>
+            <input type="password" placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)} required />
+          </div>
+          
+          <button type="submit" className="btn btn-primary" disabled={loading} style={{ width: '100%', marginTop: '10px' }}>
+            {loading ? 'Logging in...' : 'Sign In'}
           </button>
         </form>
-        <p style={{ textAlign: 'center', marginTop: '20px', color: '#64748b' }}>
-          New here? <Link to="/signup" style={{ color: '#2563eb', fontWeight: '600', textDecoration: 'none' }}>Sign up</Link>
+
+        <p style={{ textAlign: 'center', marginTop: '25px', color: '#64748b', fontSize: '0.95rem' }}>
+          Don't have an account? <Link to="/signup" style={{ color: '#2563eb', fontWeight: '600', textDecoration: 'none' }}>Sign up</Link>
         </p>
       </div>
     </div>

@@ -13,13 +13,10 @@ const EmployeeDashboard = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const fetchSession = async () => {
+    // 1. ROBUST AUTH CHECK
+    const checkUser = async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session) {
-        setLoading(false);
-        return navigate('/');
-      }
+      if (!session) { setLoading(false); return navigate('/'); }
 
       const { data: profile } = await supabase.from('profiles').select('role').eq('id', session.user.id).single();
       if (profile?.role !== 'employee') return navigate('/');
@@ -27,19 +24,23 @@ const EmployeeDashboard = () => {
       setWorkerDetails({ name: session.user.email.split('@')[0], email: session.user.email });
       fetchTasks(session.user.email);
       setLoading(false);
-
-      // --- REAL-TIME LISTENER ---
-      const subscription = supabase
-        .channel('employee_tasks')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'complaints' }, () => {
-          fetchTasks(session.user.email);
-        })
-        .subscribe();
-
-      return () => { supabase.removeChannel(subscription); };
     };
 
-    fetchSession();
+    checkUser();
+
+    // 2. REAL-TIME LISTENER
+    const subscription = supabase
+      .channel('employee_tasks')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'complaints' }, () => {
+        // We can't easily get the 'current user email' inside the callback without refs, 
+        // but re-running the checkUser logic handles it safely.
+        supabase.auth.getUser().then(({ data: { user } }) => {
+           if(user) fetchTasks(user.email);
+        });
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(subscription); };
   }, [navigate]);
 
   const fetchTasks = async (email) => {
@@ -54,6 +55,10 @@ const EmployeeDashboard = () => {
     await supabase.storage.from('complaint_images').upload(fileName, proofImage);
     const { data } = supabase.storage.from('complaint_images').getPublicUrl(fileName);
     
+    // OPTIMISTIC UPDATE
+    const updatedTasks = tasks.map(t => t.id === id ? { ...t, status: 'Resolved' } : t);
+    setTasks(updatedTasks);
+
     await supabase.from('complaints').update({ status: 'Resolved', admin_reply: replyText, resolve_image_url: data.publicUrl }).eq('id', id);
     setResolvingId(null); setReplyText(''); setProofImage(null); setSubmitting(false);
   };

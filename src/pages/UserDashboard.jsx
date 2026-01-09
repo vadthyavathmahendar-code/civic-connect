@@ -10,11 +10,12 @@ const UserDashboard = () => {
   const [gpsLoading, setGpsLoading] = useState(false);
   const [user, setUser] = useState({ name: '', email: '', points: 0 });
   const [pageLoading, setPageLoading] = useState(true);
-  
+  const [expandedId, setExpandedId] = useState(null);
+
   const navigate = useNavigate();
 
   useEffect(() => {
-    const fetchSession = async () => {
+    const checkUser = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) { setPageLoading(false); return navigate('/'); }
 
@@ -29,7 +30,7 @@ const UserDashboard = () => {
       fetchHistory(session.user.id);
       setPageLoading(false);
     };
-    fetchSession();
+    checkUser();
   }, [navigate]);
 
   const fetchHistory = async (id) => {
@@ -69,6 +70,11 @@ const UserDashboard = () => {
     fetchHistory(session.user.id);
   };
 
+  const toggleDetails = (id) => {
+    if (expandedId === id) setExpandedId(null);
+    else setExpandedId(id);
+  };
+
   const getBadge = (points) => {
     if (points >= 500) return '🦸‍♂️ Legend';
     if (points >= 200) return '🛡️ Guardian';
@@ -95,10 +101,10 @@ const UserDashboard = () => {
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '30px' }}>
-        <div className="card">
+        <div className="card" style={{ height: 'fit-content' }}>
           <h2 style={{ marginTop: 0 }}>📝 New Report</h2>
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-            <input placeholder="Title" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} required />
+            <input placeholder="Title (e.g. Broken Light)" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} required />
             <select value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})}><option>Roads</option><option>Garbage</option><option>Water</option><option>Electricity</option></select>
             <textarea placeholder="Description..." rows="3" value={formData.desc} onChange={e => setFormData({...formData, desc: e.target.value})} required />
             <div style={{ display: 'flex', gap: '10px' }}><input placeholder="Location" value={formData.location} onChange={e => setFormData({...formData, location: e.target.value})} required /><button type="button" onClick={handleGPS} className="btn btn-secondary">{gpsLoading ? '...' : '📍 GPS'}</button></div>
@@ -108,13 +114,34 @@ const UserDashboard = () => {
         </div>
 
         <div>
-          <h2 style={{ marginTop: 0 }}>📜 History</h2>
+          <h2 style={{ marginTop: 0 }}>📜 Your Reports</h2>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+            {complaints.length === 0 && <div className="empty-state">No reports yet.</div>}
             {complaints.map(c => (
-              <div key={c.id} className="card" style={{ padding: '20px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ fontWeight: 'bold', color: 'var(--primary)' }}>{c.category}</span><span className={`badge status-${c.status.replace(' ', '')}`}>{c.status}</span></div>
-                <h4 style={{ margin: '5px 0' }}>{c.title}</h4>
-                {c.status === 'Resolved' && <div style={{ marginTop: '10px', fontSize: '0.85rem', color: '#16a34a', fontWeight: 'bold' }}>🎉 +50 Points Earned!</div>}
+              <div key={c.id} className="card" style={{ padding: '0', overflow: 'hidden', border: expandedId === c.id ? '2px solid var(--primary)' : '1px solid rgba(255,255,255,0.2)' }}>
+                <div onClick={() => toggleDetails(c.id)} style={{ padding: '20px', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: expandedId === c.id ? '#f8fafc' : 'transparent' }}>
+                  <div>
+                    <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}><span style={{ fontWeight: 'bold', color: 'var(--primary)' }}>{c.category}</span><span className={`badge status-${c.status.replace(' ', '')}`}>{c.status}</span></div>
+                    <h4 style={{ margin: '5px 0 0', fontSize: '1.1rem' }}>{c.title}</h4>
+                    <p style={{ margin: '5px 0 0', fontSize: '0.85rem', color: '#64748b' }}>{new Date(c.created_at).toLocaleDateString()}</p>
+                  </div>
+                  <div style={{ fontSize: '1.2rem', color: '#94a3b8' }}>{expandedId === c.id ? '🔼' : '🔽'}</div>
+                </div>
+                {expandedId === c.id && (
+                  <div style={{ padding: '20px', borderTop: '1px solid #e2e8f0', animation: 'fadeIn 0.3s' }}>
+                    <p style={{ margin: '0 0 15px', color: '#334155' }}><strong>Description:</strong> {c.description}</p>
+                    <p style={{ margin: '0 0 15px', color: '#64748b', fontSize: '0.9rem' }}>📍 {c.location}</p>
+                    {c.image_url && (<div style={{ marginBottom: '15px' }}><p style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#64748b' }}>YOUR UPLOAD:</p><img src={c.image_url} alt="Problem" style={{ width: '100%', borderRadius: '8px', maxHeight: '200px', objectFit: 'cover' }} /></div>)}
+                    {c.status === 'Resolved' && (
+                      <div style={{ background: '#f0fdf4', padding: '15px', borderRadius: '12px', border: '1px solid #bbf7d0', marginTop: '15px' }}>
+                        <h4 style={{ margin: '0 0 10px', color: '#166534' }}>✅ Resolution Proof</h4>
+                        <p style={{ margin: '0 0 10px', color: '#15803d' }}><strong>Official Reply:</strong> "{c.admin_reply}"</p>
+                        {c.resolve_image_url ? <img src={c.resolve_image_url} alt="Proof" style={{ width: '100%', borderRadius: '8px', border: '2px solid #86efac' }} /> : <span style={{ fontSize: '0.9rem', color: '#94a3b8' }}>(No proof image)</span>}
+                        <div style={{ marginTop: '10px', fontSize: '0.9rem', color: '#16a34a', fontWeight: 'bold', textAlign: 'center' }}>🎉 You earned +50 Points!</div>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             ))}
           </div>

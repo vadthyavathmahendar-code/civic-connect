@@ -13,11 +13,8 @@ const Signup = () => {
     e.preventDefault();
     setLoading(true);
 
-    // 1. Sign up the user in Supabase Auth
-    const { data: { user }, error: authError } = await supabase.auth.signUp({
-      email,
-      password,
-    });
+    // 1. Auth Signup
+    const { data: { user }, error: authError } = await supabase.auth.signUp({ email, password });
 
     if (authError) {
       alert(authError.message);
@@ -25,69 +22,46 @@ const Signup = () => {
       return;
     }
 
-    // 2. Add the user details to 'profiles' table
+    // 2. Profile DB Insert
     if (user) {
-      const { error: dbError } = await supabase
-        .from('profiles') // Correct table name
-        .insert([
-          { 
-            id: user.id,    // <--- CRITICAL FIX: Link the Profile to the Auth ID
-            email: email, 
-            role: role 
-          }
-        ]);
+      const { error: dbError } = await supabase.from('profiles').insert([{ 
+        id: user.id, 
+        email: email, 
+        role: role 
+      }]);
 
       if (dbError) {
-        console.error('Error saving user data:', dbError);
-        alert('Signup successful, but failed to save role. Please check console.');
+        console.error(dbError);
+        alert('Signup success, but profile failed. Contact Admin.');
       } else {
-        alert('Signup successful! Please log in.');
-        navigate('/'); 
+        alert('Account Created! Please Login.');
+        navigate('/login');
       }
     }
     setLoading(false);
   };
 
   return (
-    <div style={{ maxWidth: '400px', margin: '50px auto', padding: '30px', boxShadow: '0 4px 8px rgba(0,0,0,0.1)', borderRadius: '10px', textAlign: 'center', fontFamily: 'Arial, sans-serif' }}>
-      <h2 style={{ color: '#333' }}>Create Account 🚀</h2>
-      <form onSubmit={handleSignup} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-        <input
-          type="email"
-          placeholder="Enter your email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-          style={{ padding: '10px', borderRadius: '5px', border: '1px solid #ccc' }}
-        />
-        <input
-          type="password"
-          placeholder="Create a password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-          style={{ padding: '10px', borderRadius: '5px', border: '1px solid #ccc' }}
-        />
-        <select
-          value={role}
-          onChange={(e) => setRole(e.target.value)}
-          required
-          style={{ padding: '10px', borderRadius: '5px', border: '1px solid #ccc', background: 'white' }}
-        >
-          <option value="citizen">Citizen</option>
-          <option value="employee">Government Employee</option>
-        </select>
-        <button 
-          type="submit" 
-          disabled={loading}
-          style={{ padding: '12px', backgroundColor: loading ? '#ccc' : '#007bff', color: 'white', border: 'none', borderRadius: '5px', cursor: loading ? 'not-allowed' : 'pointer', fontSize: '1rem', fontWeight: 'bold' }}
-        >
-          {loading ? 'Creating Account...' : 'Sign Up'}
-        </button>
-      </form>
-      <p style={{ marginTop: '20px', color: '#666' }}>
-        Already have an account? <Link to="/" style={{ color: '#007bff', textDecoration: 'none' }}>Log in here</Link>
-      </p>
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f1f5f9' }}>
+      <div style={{ background: 'white', padding: '40px', borderRadius: '15px', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', width: '100%', maxWidth: '400px' }}>
+        <h2 style={{ textAlign: 'center', marginBottom: '30px', color: '#1e293b' }}>Create Account 🚀</h2>
+        <form onSubmit={handleSignup} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          <input type="email" placeholder="Email Address" value={email} onChange={e => setEmail(e.target.value)} required style={{ padding: '12px', borderRadius: '8px' }} />
+          <input type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} required style={{ padding: '12px', borderRadius: '8px' }} />
+          
+          <select value={role} onChange={e => setRole(e.target.value)} style={{ padding: '12px', borderRadius: '8px', background: 'white' }}>
+            <option value="citizen">Citizen</option>
+            <option value="employee">Government Employee</option>
+          </select>
+
+          <button type="submit" disabled={loading} style={{ padding: '12px', background: '#2563eb', color: 'white', border: 'none', borderRadius: '8px', fontSize: '1rem', fontWeight: '600' }}>
+            {loading ? 'Creating...' : 'Sign Up'}
+          </button>
+        </form>
+        <p style={{ textAlign: 'center', marginTop: '20px', color: '#64748b' }}>
+          Already have an account? <Link to="/login" style={{ color: '#2563eb', fontWeight: '600', textDecoration: 'none' }}>Login</Link>
+        </p>
+      </div>
     </div>
   );
 };

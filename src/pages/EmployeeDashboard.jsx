@@ -4,78 +4,43 @@ import { useNavigate } from 'react-router-dom';
 
 const EmployeeDashboard = () => {
   const [tasks, setTasks] = useState([]);
-  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetchMyTasks();
-  }, []);
-
-  const fetchMyTasks = async () => {
-    // 1. Get the currently logged-in user
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) {
-      navigate('/login');
-      return;
-    }
-
-    // 2. Fetch complaints assigned ONLY to this email
-    const { data, error } = await supabase
-      .from('complaints')
-      .select('*')
-      .eq('assigned_to', user.email) // <--- THE FILTER
-      .order('created_at', { ascending: false });
-
-    if (error) console.error('Error fetching tasks:', error);
-    else setTasks(data);
-    setLoading(false);
-  };
+    const fetchTasks = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return navigate('/');
+      
+      // Fetch tasks assigned to this employee's email
+      const { data } = await supabase.from('complaints').select('*').eq('assigned_to', user.email);
+      setTasks(data || []);
+    };
+    fetchTasks();
+  }, [navigate]);
 
   const markResolved = async (id) => {
-    // Upload proof logic can be added here later
-    const { error } = await supabase
-      .from('complaints')
-      .update({ status: 'Resolved' })
-      .eq('id', id);
-    
-    if (!error) {
-      alert("Great job! Task marked as Resolved.");
-      fetchMyTasks();
-    }
+    await supabase.from('complaints').update({ status: 'Resolved' }).eq('id', id);
+    alert('Task Resolved!');
+    window.location.reload();
   };
 
-  if (loading) return <p>Loading your tasks...</p>;
-
   return (
-    <div style={{ padding: '20px' }}>
-      <h2>👷 My Work Orders</h2>
-      {tasks.length === 0 ? (
-        <p>No tasks assigned to you yet. Enjoy your break! ☕</p>
-      ) : (
-        <div style={{ display: 'grid', gap: '20px' }}>
-          {tasks.map((task) => (
-            <div key={task.id} style={{ border: '1px solid #ddd', padding: '15px', borderRadius: '8px', background: '#fff' }}>
-              <h3>{task.category || 'General Issue'}</h3>
-              <p><strong>📍 Location:</strong> {task.location}</p>
-              <p><strong>📝 Description:</strong> {task.description}</p>
-              
-              {/* Show Status */}
-              <p>Status: <span style={{ fontWeight: 'bold', color: task.status === 'Resolved' ? 'green' : 'orange' }}>{task.status}</span></p>
-
-              {/* Action Button */}
-              {task.status !== 'Resolved' && (
-                <button 
-                  onClick={() => markResolved(task.id)}
-                  style={{ marginTop: '10px', padding: '10px', backgroundColor: '#28a745', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer' }}
-                >
-                  ✅ Mark as Fixed
-                </button>
-              )}
-            </div>
-          ))}
+    <div style={{ padding: '20px', maxWidth: '800px', margin: '0 auto' }}>
+      <h1>👷 My Tasks</h1>
+      <button onClick={() => { supabase.auth.signOut(); navigate('/'); }} style={{ marginBottom: '20px', background: '#ef4444', color: 'white', border: 'none', padding: '8px 16px', borderRadius: '5px' }}>Logout</button>
+      
+      {tasks.length === 0 ? <p>No tasks assigned yet.</p> : tasks.map(t => (
+        <div key={t.id} style={{ background: 'white', padding: '20px', borderRadius: '10px', marginBottom: '15px', border: '1px solid #e2e8f0' }}>
+          <h3>{t.title}</h3>
+          <p>{t.description}</p>
+          <p><strong>Location:</strong> {t.location}</p>
+          {t.status !== 'Resolved' && (
+            <button onClick={() => markResolved(t.id)} style={{ width: '100%', padding: '10px', background: '#10b981', color: 'white', border: 'none', borderRadius: '5px', fontWeight: 'bold' }}>
+              ✅ Mark as Done
+            </button>
+          )}
         </div>
-      )}
+      ))}
     </div>
   );
 };

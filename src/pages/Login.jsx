@@ -9,67 +9,42 @@ const Login = () => {
 
   const handleLogin = async (e) => {
     e.preventDefault();
-
-    // 1. Authenticate with Supabase Auth
-    const { data: { user }, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    
+    // 1. Auth Login
+    const { data: { user }, error } = await supabase.auth.signInWithPassword({ email, password });
 
     if (error) {
       alert(error.message);
     } else {
-      // 2. FETCH ROLE from 'profiles' table
-      const { data: userData, error: roleError } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('email', email)
-        .single(); 
+      // 2. Check Role
+      const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
 
-      if (roleError) {
-        console.error("Error fetching role:", roleError);
-        navigate('/'); // Fallback if something breaks
-      } else if (userData) {
-        // 3. REDIRECT BASED ON ROLE
-        if (userData.role === 'admin') {
-          navigate('/admin-dashboard');
-        } else if (userData.role === 'employee') {
-          navigate('/employee-dashboard');
-        } else {
-          // --- UPDATED: Citizens go to their Dashboard ---
-          navigate('/user-dashboard'); 
-        }
+      if (profile) {
+        if (profile.role === 'admin') navigate('/admin-dashboard');
+        else if (profile.role === 'employee') navigate('/employee-dashboard');
+        else navigate('/user-dashboard'); // Citizens go here
+      } else {
+        navigate('/'); 
       }
     }
   };
 
   return (
-    <div style={{ maxWidth: '400px', margin: '50px auto', padding: '30px', textAlign: 'center', boxShadow: '0 4px 8px rgba(0,0,0,0.1)', borderRadius: '10px' }}>
-      <h2>Login 🔐</h2>
-      <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-        <input
-          type="email"
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-          style={{ padding: '10px', borderRadius: '5px', border: '1px solid #ccc' }}
-        />
-        <input
-          type="password"
-          placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-          style={{ padding: '10px', borderRadius: '5px', border: '1px solid #ccc' }}
-        />
-        <button type="submit" style={{ padding: '10px', backgroundColor: '#007bff', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer' }}>
-          Login
-        </button>
-      </form>
-      <p style={{ marginTop: '20px' }}>
-        Don't have an account? <Link to="/signup">Sign up</Link>
-      </p>
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f1f5f9' }}>
+      <div style={{ background: 'white', padding: '40px', borderRadius: '15px', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', width: '100%', maxWidth: '400px' }}>
+        <h2 style={{ textAlign: 'center', marginBottom: '30px', color: '#1e293b' }}>Welcome Back 👋</h2>
+        <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          <input type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} required style={{ padding: '12px', borderRadius: '8px' }} />
+          <input type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} required style={{ padding: '12px', borderRadius: '8px' }} />
+          
+          <button type="submit" style={{ padding: '12px', background: '#2563eb', color: 'white', border: 'none', borderRadius: '8px', fontSize: '1rem', fontWeight: '600' }}>
+            Login
+          </button>
+        </form>
+        <p style={{ textAlign: 'center', marginTop: '20px', color: '#64748b' }}>
+          New here? <Link to="/signup" style={{ color: '#2563eb', fontWeight: '600', textDecoration: 'none' }}>Sign up</Link>
+        </p>
+      </div>
     </div>
   );
 };

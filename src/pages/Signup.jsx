@@ -25,12 +25,13 @@ const Signup = () => {
       return;
     }
 
-    // 2. Add the user details to 'profiles' table (FIXED)
+    // 2. Add the user details to 'profiles' table
     if (user) {
       const { error: dbError } = await supabase
-        .from('profiles') // <--- CHANGED TO 'profiles'
+        .from('profiles') // Correct table name
         .insert([
           { 
+            id: user.id,    // <--- CRITICAL FIX: Link the Profile to the Auth ID
             email: email, 
             role: role 
           }
@@ -38,7 +39,7 @@ const Signup = () => {
 
       if (dbError) {
         console.error('Error saving user data:', dbError);
-        alert('Signup successful, but failed to save role. Please contact support.');
+        alert('Signup successful, but failed to save role. Please check console.');
       } else {
         alert('Signup successful! Please log in.');
         navigate('/'); 
@@ -74,7 +75,7 @@ const Signup = () => {
           style={{ padding: '10px', borderRadius: '5px', border: '1px solid #ccc', background: 'white' }}
         >
           <option value="citizen">Citizen</option>
-          <option value="employee">Government Employee (Field Worker)</option>
+          <option value="employee">Government Employee</option>
         </select>
         <button 
           type="submit" 

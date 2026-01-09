@@ -19,16 +19,16 @@ const Login = () => {
     if (error) {
       alert(error.message);
     } else {
-      // 2. FETCH ROLE from 'profiles' table (FIXED)
+      // 2. FETCH ROLE from 'profiles' table
       const { data: userData, error: roleError } = await supabase
-        .from('profiles') // <--- CHANGED TO 'profiles'
+        .from('profiles')
         .select('role')
         .eq('email', email)
         .single(); 
 
       if (roleError) {
         console.error("Error fetching role:", roleError);
-        navigate('/'); // Fallback
+        navigate('/'); 
       } else if (userData) {
         // 3. REDIRECT BASED ON ROLE
         if (userData.role === 'admin') {

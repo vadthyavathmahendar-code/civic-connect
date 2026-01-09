@@ -10,15 +10,12 @@ const UserDashboard = () => {
   const [image, setImage] = useState(null)
   
   // User Details
-  const [userEmail, setUserEmail] = useState('')
   const [userName, setUserName] = useState('')
-  const [userRole, setUserRole] = useState('citizen') // NEW: Store Role
+  const [userRole, setUserRole] = useState('citizen') 
 
   const [submitting, setSubmitting] = useState(false)
   const [fetching, setFetching] = useState(true)
-  
   const [myComplaints, setMyComplaints] = useState([])
-  const [notification, setNotification] = useState(null)
   
   const navigate = useNavigate()
 
@@ -28,11 +25,9 @@ const UserDashboard = () => {
       if (!session) {
         navigate('/')
       } else {
-        const email = session.user.email
-        setUserEmail(email)
-        setUserName(email.split('@')[0]) 
+        setUserName(session.user.email.split('@')[0]) 
         
-        // 1. FETCH ROLE
+        // Fetch Role
         const { data: profile } = await supabase
           .from('profiles')
           .select('role')
@@ -40,7 +35,6 @@ const UserDashboard = () => {
           .single()
         
         setUserRole(profile?.role || 'citizen')
-
         fetchMyComplaints(session.user.id)
       }
     }
@@ -48,14 +42,9 @@ const UserDashboard = () => {
   }, [navigate])
 
   const fetchMyComplaints = async (userId) => {
-    const { data } = await supabase.from('complaints').select('*').eq('user_id', userId).order('id', { ascending: false })
+    const { data } = await supabase.from('complaints').select('*').eq('user_id', userId).order('created_at', { ascending: false })
     setMyComplaints(data || [])
     setFetching(false)
-  }
-
-  const showToast = (message, type = 'success') => {
-    setNotification({ message, type })
-    setTimeout(() => setNotification(null), 3000)
   }
 
   const handleLogout = async () => { await supabase.auth.signOut(); navigate('/') }
@@ -64,10 +53,10 @@ const UserDashboard = () => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (pos) => setLocation(`Lat: ${pos.coords.latitude}, Long: ${pos.coords.longitude}`),
-        () => showToast("Could not get location", "error")
+        () => alert("Location Fetched!")
       )
     } else {
-      showToast("Geolocation not supported", "error")
+      alert("Geolocation not supported")
     }
   }
 
@@ -86,152 +75,65 @@ const UserDashboard = () => {
       }
 
       const { error } = await supabase.from('complaints').insert([
-        { title, description: desc, location, category, image_url: imageUrl, user_id: user.id, status: 'pending' }
+        { title, description: desc, location, category, image_url: imageUrl, user_id: user.id, status: 'Pending' }
       ])
 
       if (error) throw error
 
-      showToast("Complaint Submitted!", "success")
+      alert("Complaint Submitted!")
       setTitle(''); setDesc(''); setLocation(''); setImage(null);
       fetchMyComplaints(user.id)
 
     } catch (error) {
-      showToast(error.message, "error")
+      console.error(error)
+      alert("Error submitting complaint")
     } finally {
       setSubmitting(false)
     }
   }
 
   return (
-    <div className="container animate-fade">
-      {notification && (
-        <div className="toast-container">
-          <div className={`toast ${notification.type}`}>
-            {notification.type === 'success' ? '✅' : '❌'} {notification.message}
+    <div style={{ maxWidth: '800px', margin: '0 auto', padding: '20px', fontFamily: 'Arial, sans-serif' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
+        <h1>👋 User Dashboard</h1>
+        <button onClick={handleLogout} style={{ padding: '10px', background: '#dc3545', color: 'white', border: 'none', borderRadius: '5px' }}>Logout</button>
+      </div>
+
+      <div style={{ background: 'white', padding: '20px', borderRadius: '10px', boxShadow: '0 2px 5px rgba(0,0,0,0.1)', marginBottom: '30px' }}>
+        <h2>📢 Report Issue</h2>
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+          <input type="text" placeholder="Title" value={title} onChange={e => setTitle(e.target.value)} required style={{ padding: '10px' }}/>
+          <select value={category} onChange={(e) => setCategory(e.target.value)} style={{ padding: '10px' }}>
+            <option value="Roads">Roads</option>
+            <option value="Garbage">Garbage</option>
+            <option value="Water">Water</option>
+            <option value="Electricity">Electricity</option>
+          </select>
+          <textarea placeholder="Description" value={desc} onChange={e => setDesc(e.target.value)} required style={{ padding: '10px' }} />
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <input type="text" placeholder="Location" value={location} onChange={e => setLocation(e.target.value)} style={{ flex: 1, padding: '10px' }} />
+            <button type="button" onClick={getLocation} style={{ padding: '10px' }}>📍 GPS</button>
           </div>
+          <input type="file" onChange={e => setImage(e.target.files[0])} />
+          <button type="submit" disabled={submitting} style={{ padding: '10px', background: '#007bff', color: 'white', border: 'none', cursor: 'pointer' }}>
+            {submitting ? 'Submitting...' : 'Submit Report'}
+          </button>
+        </form>
+      </div>
+
+      <h3>📂 My History</h3>
+      {fetching ? <p>Loading...</p> : (
+        <div style={{ display: 'grid', gap: '15px' }}>
+          {myComplaints.map(item => (
+            <div key={item.id} style={{ border: '1px solid #ddd', padding: '15px', borderRadius: '5px', background: 'white' }}>
+              <h4>{item.title} <small>({item.status})</small></h4>
+              <p>{item.description}</p>
+            </div>
+          ))}
         </div>
       )}
-
-      {/* HEADER SECTION */}
-      <div className="header-flex" style={{ alignItems: 'center' }}>
-        <h1 style={{ margin: 0 }}>👋 Civic Connect</h1>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-          
-          {/* NEW: ADMIN BUTTON (Only visible to Admins) */}
-          {userRole === 'admin' && (
-            <button 
-              onClick={() => navigate('/admin-dashboard')} 
-              className="btn btn-primary" 
-              style={{ padding: '8px 15px', fontSize: '0.9rem' }}
-            >
-              🛡️ Admin Panel
-            </button>
-          )}
-
-          <div style={{ textAlign: 'right' }}>
-            <div style={{ fontWeight: 'bold', fontSize: '1.1rem', textTransform: 'capitalize' }}>
-              {userName}
-            </div>
-            <div style={{ fontSize: '0.85rem', color: '#666' }}>
-              {userEmail}
-            </div>
-          </div>
-
-          <div style={{ 
-            width: '40px', height: '40px', 
-            background: '#4f46e5', color: 'white', 
-            borderRadius: '50%', display: 'flex', 
-            alignItems: 'center', justifyContent: 'center', 
-            fontWeight: 'bold', fontSize: '1.2rem' 
-          }}>
-            {userName.charAt(0).toUpperCase()}
-          </div>
-
-          <button onClick={handleLogout} className="btn btn-danger" style={{ padding: '8px 15px', fontSize: '0.9rem' }}>
-            Logout
-          </button>
-        </div>
-      </div>
-
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '2rem', marginTop: '30px' }}>
-        
-        {/* REPORT FORM */}
-        <div className="card">
-          <h2>📢 Report a New Problem</h2>
-          <form onSubmit={handleSubmit}>
-            <label>Title</label>
-            <input type="text" placeholder="e.g. Broken Streetlight" value={title} onChange={e => setTitle(e.target.value)} required />
-            
-            <label>Category</label>
-            <select value={category} onChange={(e) => setCategory(e.target.value)} required>
-              <option value="Roads">🛣️ Roads & Potholes</option>
-              <option value="Garbage">🗑️ Garbage Collection</option>
-              <option value="Water">💧 Water Supply</option>
-              <option value="Electricity">⚡ Electricity</option>
-              <option value="Other">❓ Other</option>
-            </select>
-
-            <label>Description</label>
-            <textarea placeholder="Describe the issue..." value={desc} onChange={e => setDesc(e.target.value)} required rows="3" />
-            
-            <label>Location</label>
-            <div style={{ display: 'flex', gap: '10px' }}>
-              <input type="text" placeholder="Address or GPS" value={location} onChange={e => setLocation(e.target.value)} required />
-              <button type="button" onClick={getLocation} className="btn btn-location" style={{whiteSpace:'nowrap'}}>📍 GPS</button>
-            </div>
-            
-            <label>Photo Evidence (Optional)</label>
-            <input type="file" onChange={e => setImage(e.target.files[0])} />
-
-            <button type="submit" disabled={submitting} className="btn btn-primary" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '10px' }}>
-              {submitting ? (
-                <>
-                  <div className="spinner" style={{ width: '18px', height: '18px', borderLeftColor: 'white', borderWidth: '3px' }}></div>
-                  Submitting...
-                </>
-              ) : 'Submit Report'}
-            </button>
-          </form>
-        </div>
-
-        {/* HISTORY LIST */}
-        <div className="card">
-          <h2>📂 My Complaints</h2>
-          {fetching ? (
-            <div className="loading-screen" style={{ padding: '2rem' }}>
-              <div className="spinner"></div> Loading your history...
-            </div>
-          ) : (
-            <div>
-              {myComplaints.length === 0 ? <p style={{color:'#666'}}>No reports yet.</p> : null}
-              {myComplaints.map(item => (
-                <div key={item.id} className="history-item" style={{display:'block'}}>
-                  <div style={{display:'flex', justifyContent:'space-between', alignItems:'flex-start'}}>
-                    <div>
-                      <h3 style={{margin:0}}>{item.title}</h3>
-                      <small style={{color:'#666'}}>{item.category} • {new Date(item.created_at).toLocaleDateString()}</small>
-                    </div>
-                    <span className={`status-badge status-${item.status}`}>{item.status}</span>
-                  </div>
-                  {item.status === 'resolved' && (
-                    <div style={{marginTop:'15px', background:'#f0fdf4', padding:'15px', borderRadius:'8px', borderLeft:'4px solid #10b981'}}>
-                      <p style={{margin:'0 0 10px 0'}}><strong>👮 Govt Reply:</strong> {item.admin_reply}</p>
-                      {item.resolve_image_url && (
-                        <div style={{marginTop:'10px'}}>
-                          <div style={{fontSize:'0.85rem', fontWeight:'bold', color:'#059669', marginBottom:'5px'}}>✅ PROOF OF WORK:</div>
-                          <img src={item.resolve_image_url} alt="Proof" style={{maxWidth:'100%', maxHeight:'200px', borderRadius:'8px', border:'1px solid #a7f3d0'}} />
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
     </div>
   )
 }
+
 export default UserDashboard

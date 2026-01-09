@@ -1,26 +1,26 @@
-import { Routes, Route } from 'react-router-dom'
-import Login from './pages/Login'
-import Signup from './pages/Signup'
-import UserDashboard from './pages/UserDashboard'
-import AdminDashboard from './pages/AdminDashboard'
-import LandingPage from './pages/LandingPage' // Import the new page
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+
+// Import pages
+import Login from './pages/Login';
+import Signup from './pages/Signup';
+import AdminDashboard from './pages/AdminDashboard';
 import EmployeeDashboard from './pages/EmployeeDashboard';
+import UserDashboard from './pages/UserDashboard'; 
 
 function App() {
   return (
-    <Routes>
-      {/* The "/" path now points to LandingPage instead of Login */}
-      <Route path="/" element={<LandingPage />} />
-      
-      {/* We moved Login to its own path */}
-      <Route path="/login" element={<Login />} />
-      
-      <Route path="/signup" element={<Signup />} />
-      <Route path="/user-dashboard" element={<UserDashboard />} />
-      <Route path="/admin-dashboard" element={<AdminDashboard />} />
-      <Route path="/employee-dashboard" element={<EmployeeDashboard />} />
-    </Routes>
-  )
+    <Router>
+      <Routes>
+        <Route path="/" element={<Login />} />
+        <Route path="/signup" element={<Signup />} />
+        
+        {/* Private Dashboards */}
+        <Route path="/admin-dashboard" element={<AdminDashboard />} />
+        <Route path="/employee-dashboard" element={<EmployeeDashboard />} />
+        <Route path="/user-dashboard" element={<UserDashboard />} />
+      </Routes>
+    </Router>
+  );
 }
 
-export default App
+export default App;

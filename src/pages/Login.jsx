@@ -28,7 +28,7 @@ const Login = () => {
 
       if (roleError) {
         console.error("Error fetching role:", roleError);
-        navigate('/'); 
+        navigate('/'); // Fallback if something breaks
       } else if (userData) {
         // 3. REDIRECT BASED ON ROLE
         if (userData.role === 'admin') {
@@ -36,7 +36,8 @@ const Login = () => {
         } else if (userData.role === 'employee') {
           navigate('/employee-dashboard');
         } else {
-          navigate('/'); // Citizen goes to Home
+          // --- UPDATED: Citizens go to their Dashboard ---
+          navigate('/user-dashboard'); 
         }
       }
     }

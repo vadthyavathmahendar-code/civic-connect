@@ -105,7 +105,7 @@ const UserDashboard = () => {
           <h2 style={{ marginTop: 0 }}>📝 New Report</h2>
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
             <input placeholder="Title (e.g. Broken Light)" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} required />
-            <select value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})}><option>Roads</option><option>Garbage</option><option>Water</option><option>Electricity</option></select>
+            <select value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})}><option>Roads</option><option>Garbage</option><option>Electricity</option></select>
             <textarea placeholder="Description..." rows="3" value={formData.desc} onChange={e => setFormData({...formData, desc: e.target.value})} required />
             <div style={{ display: 'flex', gap: '10px' }}><input placeholder="Location" value={formData.location} onChange={e => setFormData({...formData, location: e.target.value})} required /><button type="button" onClick={handleGPS} className="btn btn-secondary">{gpsLoading ? '...' : '📍 GPS'}</button></div>
             <input type="file" onChange={e => setImage(e.target.files[0])} />
